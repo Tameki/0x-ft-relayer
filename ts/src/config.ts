@@ -28,9 +28,8 @@ export const WHITELISTED_TOKENS: string[] | '*' = _.isEmpty(process.env.WHITELIS
     : assertEnvVarType('WHITELIST_ALL_TOKENS', process.env.WHITELIST_ALL_TOKENS, EnvVarType.WhitelistAllTokens);
 
 // Network port to listen on
-export const HTTP_PORT = _.isEmpty(process.env.PORT)
-    ? 3000
-    : assertEnvVarType('HTTP_PORT', process.env.HTTP_PORT, EnvVarType.Port);
+export const HTTP_PORT = process.env.PORT || 3000
+
 // Default network id to use when not specified
 export const NETWORK_ID = _.isEmpty(process.env.NETWORK_ID)
     ? 42

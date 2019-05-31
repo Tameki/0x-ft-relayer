@@ -20,5 +20,7 @@ export async function initDBConnectionAsync(): Promise<void> {
     if (connectionIfExists !== undefined) {
         throw new Error('DB connection already exists');
     }
-    connectionIfExists = await createConnection();
+    connectionIfExists = await createConnection(
+        
+    );
 }
