@@ -17,6 +17,7 @@ import {
     DEFAULT_ERC20_TOKEN_PRECISION,
     DEFAULT_TAKER_SIMULATION_ADDRESS,
     NETWORK_ID,
+    IS_MAIN_NETWORK,
     ORDER_SHADOWING_MARGIN_MS,
     PERMANENT_CLEANUP_INTERVAL_MS,
     RPC_URL,
@@ -32,6 +33,7 @@ export class OrderBook {
     private readonly _contractWrappers: ContractWrappers;
     // Mapping from an order hash to the timestamp when it was shadowed
     private readonly _shadowedOrders: Map<string, number>;
+    
     public static async getOrderByHashIfExistsAsync(orderHash: string): Promise<APIOrder | undefined> {
         const connection = getDBConnection();
         const signedOrderModelIfExists = await connection.manager.findOne(SignedOrderModel, orderHash);
@@ -115,6 +117,9 @@ export class OrderBook {
         provider.addProvider(new RPCSubprovider(RPC_URL));
         provider.start();
 
+        console.log(RPC_URL);
+        
+
         this._shadowedOrders = new Map();
         this._contractWrappers = new ContractWrappers(provider, {
             networkId: NETWORK_ID,
@@ -158,16 +163,16 @@ export class OrderBook {
         const connection = getDBConnection();
         // Validate transfers to a non 0 default address. Some tokens cannot be transferred to
         // the null address (default)
-        console.log("Validate order in exchange " + this._contractWrappers.exchange.address);
+        if (IS_MAIN_NETWORK) {
+            console.log("Validate order in exchange " + this._contractWrappers.exchange.address);
+            await this._contractWrappers.exchange.validateOrderFillableOrThrowAsync(signedOrder)
+                .then(console.log, console.log)
+                .catch(console.log);
+            console.log("Order validated, now add to watcher " + DEFAULT_TAKER_SIMULATION_ADDRESS);
+        }
         
-        // await this._contractWrappers.exchange.validateOrderFillableOrThrowAsync(signedOrder, {
-        //     simulationTakerAddress: DEFAULT_TAKER_SIMULATION_ADDRESS,
-        // });
-        console.log("Order validated, now add " + DEFAULT_TAKER_SIMULATION_ADDRESS);
         await this._orderWatcher.addOrderAsync(signedOrder);
-        console.log("Add order success, now serialize");
         const signedOrderModel = serializeOrder(signedOrder);
-        console.log("Serialize finished, now save");
         await connection.manager.save(signedOrderModel);
         console.log("Order saved");
     }
@@ -264,15 +269,26 @@ export class OrderBook {
         return paginatedApiOrders;
     }
     public async addExistingOrdersToOrderWatcherAsync(): Promise<void> {
+        console.log("Get db connection start");
         const connection = getDBConnection();
+        console.log("Get db connection end");
         const signedOrderModels = (await connection.manager.find(SignedOrderModel)) as Array<
             Required<SignedOrderModel>
         >;
         const signedOrders = signedOrderModels.map(deserializeOrder);
+        console.log("Orders fetched");
         for (const signedOrder of signedOrders) {
             try {
-                await this._contractWrappers.exchange.validateOrderFillableOrThrowAsync(signedOrder);
+                if (IS_MAIN_NETWORK) {
+                    console.log("Start order validation - " + signedOrder.signature + " " + signedOrder.feeRecipientAddress + " " + signedOrder.exchangeAddress);
+                    await this._contractWrappers.exchange.validateOrderFillableOrThrowAsync(signedOrder)
+                    .then(console.log, console.log)
+                    .catch(console.log);
+                    console.log("Order validated");
+                }
+                
                 await this._orderWatcher.addOrderAsync(signedOrder);
+                console.log("Add order");
             } catch (err) {
                 const orderHash = orderHashUtils.getOrderHashHex(signedOrder);
                 await connection.manager.delete(SignedOrderModel, orderHash);

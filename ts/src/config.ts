@@ -34,6 +34,9 @@ export const HTTP_PORT = process.env.PORT || 3000
 export const NETWORK_ID = _.isEmpty(process.env.NETWORK_ID)
     ? 42
     : assertEnvVarType('NETWORK_ID', process.env.NETWORK_ID, EnvVarType.NetworkId);
+
+export const IS_MAIN_NETWORK = NETWORK_ID == 1;
+
 // The fee recipient for orders
 export const FEE_RECIPIENT = _.isEmpty(process.env.FEE_RECIPIENT)
     ? getDefaultFeeRecipient()
@@ -49,6 +52,7 @@ export const TAKER_FEE_ZRX_UNIT_AMOUNT = _.isEmpty(process.env.TAKER_FEE_ZRX_UNI
 // Ethereum RPC url
 export const RPC_URL = _.isEmpty(process.env.RPC_URL)
     ? 'https://kovan.infura.io/v3/57b6615fb10b4749a54b29c2894a00df'
+    // ? 'https://kovan.infura.io/57b6615fb10b4749a54b29c2894a00df'
     : assertEnvVarType('RPC_URL', process.env.RPC_URL, EnvVarType.Url);
 
 // Address used when simulating transfers from the maker as part of 0x order validation
@@ -115,5 +119,6 @@ function getDefaultFeeRecipient(): string {
         metadataCopy.DEFAULT_FEE_RECIPIENT = newDefault;
         fs.writeFileSync(metadataPath, JSON.stringify(metadataCopy));
     }
-    return newDefault;
+    
+    return "0xe2507b493bef003030f0a053d55af80237a44c64";
 }

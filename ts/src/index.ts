@@ -13,9 +13,13 @@ import { urlParamsParsing } from './middleware/url_params_parsing';
 import { utils } from './utils';
 
 (async () => {
+    console.log("Relayer init start");
     await initDBConnectionAsync();
+    console.log("DB Connection initialized");
     const handlers = new Handlers();
-    await handlers.initOrderBookAsync();
+    await handlers.initOrderBookAsync()
+        .catch(console.log);
+    console.log("OrderBook initialized");
     const app = express();
     app.use(cors());
     app.use(bodyParser.json());
